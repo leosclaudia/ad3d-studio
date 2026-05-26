@@ -804,6 +804,7 @@ function render(ms){
   updateP();drawP();
 
   // ── BREAKOUT EFFECT — rompe el marco ──
+  // ── BREAKOUT EFFECT — el billboard completo sale hacia el espectador ──
   if(S.board){
     const cycle=S.breakoutCycle||4.5;
     const tSec=(ms/1000)%cycle;
@@ -814,44 +815,92 @@ function render(ms){
     else if(tSec>holdEnd){const p=(tSec-holdEnd)/(cycle-holdEnd);breakProg=1-p;}
 
     if(breakProg>0.01){
-      const cropW=bW*0.72,cropH=bH*0.85;
-      const maxExtra=bH*(S.breakoutHeight||0.38);
-      const scaleOut=1+breakProg*0.55;
-      const tzOut=breakProg*120;
-      const yLift=-breakProg*maxExtra;
+      const maxHeight=S.breakoutHeight||0.38;
+      // Simulamos que el billboard se acerca al espectador
+      // usando perspectiva: el video se escala y sube
+      const zDist=breakProg*180; // profundidad simulada
+      const scaleFactor=FOV/(FOV-zDist*0.6);
+      const yLift=-breakProg*bH*maxHeight;
 
-      const outW=cropW*scaleOut*(FOV/(FOV+tzOut*(1-breakProg*0.3)));
-      const outH=cropH*scaleOut*(FOV/(FOV+tzOut*(1-breakProg*0.3)));
+      const outW=bW*scaleFactor;
+      const outH=bH*scaleFactor;
+      const dstX=cx-outW/2;
+      const dstY=cy+yLift-outH/2;
 
-      if(breakProg>0.1){
-        ctx.save();
-        ctx.globalAlpha=breakProg*0.55;
-        const shX=cx+breakProg*18,shY=cy+yLift+outH*0.38;
-        const sg=ctx.createRadialGradient(shX,shY+20,0,shX,shY+20,outW*0.6);
-        sg.addColorStop(0,'rgba(0,0,0,.7)');sg.addColorStop(1,'rgba(0,0,0,0)');
-        ctx.fillStyle=sg;ctx.beginPath();ctx.ellipse(shX,shY+30,outW*0.55,outH*0.18,0,0,Math.PI*2);ctx.fill();
-        ctx.restore();
+      // Sombra proyectada debajo del billboard
+      ctx.save();
+      ctx.globalAlpha=breakProg*0.5;
+      const sg=ctx.createRadialGradient(cx+breakProg*20,cy+bH*0.52,0,cx+breakProg*20,cy+bH*0.52,outW*0.55);
+      sg.addColorStop(0,'rgba(0,0,0,.8)');sg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=sg;
+      ctx.beginPath();ctx.ellipse(cx+breakProg*20,cy+bH*0.52+breakProg*30,outW*0.48,outH*0.1,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+
+      // El video completo con perspectiva — esquinas con efecto trapezoide 3D
+      ctx.save();
+
+      // Glow naranja en los bordes al salir
+      if(breakProg>0.25){
+        ctx.shadowColor='rgba(255,106,0,'+(breakProg*0.6)+')';
+        ctx.shadowBlur=Math.round(25*breakProg);
       }
+
+      // Dibujar usando transformación de perspectiva manual (trapezoide)
+      // La parte superior se achica un poco (efecto de alejarse en la parte de arriba)
+      const perspective=0.06*breakProg;
+      const topW=outW*(1-perspective);
+      const botW=outW*(1+perspective*0.3);
+      const topX=cx-topW/2;
+      const botX=cx-botW/2;
 
       const iw=S.board.videoWidth||S.board.naturalWidth||S.board.width||1;
       const ih=S.board.videoHeight||S.board.naturalHeight||S.board.height||1;
-      const srcX=iw*0.14,srcY=ih*0.08,srcW=iw*0.72,srcH=ih*0.85;
-      const dstX=cx-outW/2,dstY=cy+yLift-outH/2;
 
-      ctx.save();
-      if(breakProg>0.3){ctx.shadowColor='rgba(255,106,0,'+(breakProg*0.7)+')';ctx.shadowBlur=30*breakProg;}
-      ctx.drawImage(S.board,srcX,srcY,srcW,srcH,dstX,dstY,outW,outH);
+      // Dibujamos el video con clip path trapezoidal para el efecto 3D
+      ctx.beginPath();
+      ctx.moveTo(topX, dstY);
+      ctx.lineTo(topX+topW, dstY);
+      ctx.lineTo(botX+botW, dstY+outH);
+      ctx.lineTo(botX, dstY+outH);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(S.board, 0, 0, iw, ih, dstX, dstY, outW, outH);
       ctx.shadowBlur=0;
-
-      if(breakProg>0.85){
-        const fl=ctx.createRadialGradient(cx,cy+yLift,0,cx,cy+yLift,outW*0.4);
-        fl.addColorStop(0,'rgba(255,200,100,'+(breakProg-0.85)*3+')');
-        fl.addColorStop(1,'rgba(255,106,0,0)');
-        ctx.globalCompositeOperation='screen';
-        ctx.fillStyle=fl;ctx.fillRect(cx-outW,cy+yLift-outH,outW*2,outH*2);
-        ctx.globalCompositeOperation='source-over';
-      }
       ctx.restore();
+
+      // Marco del billboard también sale — borde naranja
+      ctx.save();
+      ctx.globalAlpha=Math.min(breakProg*1.2,1);
+      ctx.beginPath();
+      ctx.moveTo(topX, dstY);
+      ctx.lineTo(topX+topW, dstY);
+      ctx.lineTo(botX+botW, dstY+outH);
+      ctx.lineTo(botX, dstY+outH);
+      ctx.closePath();
+      ctx.strokeStyle=S.fc||'#ff6a00';
+      ctx.lineWidth=4*scaleFactor;
+      ctx.shadowColor=S.fc||'#ff6a00';
+      ctx.shadowBlur=Math.round(18*breakProg);
+      ctx.stroke();
+      ctx.shadowBlur=0;
+      ctx.restore();
+
+      // Destello de luz en el pico máximo
+      if(breakProg>0.82){
+        const fl=breakProg-0.82;
+        ctx.save();
+        ctx.globalAlpha=fl*2.5;
+        ctx.globalCompositeOperation='screen';
+        const flg=ctx.createRadialGradient(cx,cy+yLift,0,cx,cy+yLift,outW*0.5);
+        flg.addColorStop(0,'rgba(255,180,80,0.4)');
+        flg.addColorStop(0.4,'rgba(255,106,0,0.15)');
+        flg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=flg;
+        ctx.fillRect(cx-outW,cy+yLift-outH,outW*2,outH*2);
+        ctx.globalCompositeOperation='source-over';
+        ctx.restore();
+      }
     }
   } else { drawProdHint(q,cx,cy); }
 
