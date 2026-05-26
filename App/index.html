@@ -108,7 +108,21 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
 .style-btn:hover{border-color:var(--g);color:var(--tx)}
 .style-btn.on{background:var(--g);color:#000;border-color:var(--g)}
 
-/* GATE */
+/* CROP MODAL */
+#cropModal{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.92);align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#cropModal.on{display:flex}
+.crop-box{position:relative;background:#000;overflow:hidden;cursor:crosshair}
+.crop-box canvas{display:block}
+.crop-selection{position:absolute;border:2px solid #ff6a00;box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move;box-sizing:border-box}
+.crop-handle{position:absolute;width:12px;height:12px;background:#ff6a00;border-radius:2px}
+.crop-handle.tl{top:-6px;left:-6px;cursor:nw-resize}
+.crop-handle.tr{top:-6px;right:-6px;cursor:ne-resize}
+.crop-handle.bl{bottom:-6px;left:-6px;cursor:sw-resize}
+.crop-handle.br{bottom:-6px;right:-6px;cursor:se-resize}
+.crop-actions{display:flex;gap:10px}
+.crop-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;color:var(--tx)}
+.crop-title span{color:var(--g)}
+.crop-hint{font-size:11px;color:var(--dim);text-align:center}
 #gate{display:none;position:fixed;inset:0;z-index:9999;background:rgba(3,3,10,.97);backdrop-filter:blur(20px);align-items:center;justify-content:center;padding:20px}
 #gate.on{display:flex}
 .gate-box{background:#0d0d18;border:1px solid rgba(255,214,0,.25);border-radius:20px;padding:38px;max-width:460px;width:100%;text-align:center}
@@ -177,6 +191,9 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
     </div>
     <div class="f" style="margin-top:2px">
       <label style="color:var(--g);font-size:9px">✦ El pop-out 3D se genera solo</label>
+    </div>
+    <div class="f">
+      <button class="fbtn" id="btnCropTool" onclick="openCropModal()" style="border-color:var(--g);color:var(--g);display:none">✂ Elegir zona del pop-out</button>
     </div>
     <div class="f">
       <label>Fondo de escena <small style="color:var(--dim);font-weight:400">(opcional)</small></label>
@@ -408,6 +425,66 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
 </div><!-- /main -->
 
 <script>
+// ── CROP TOOL ──
+const CROP_W=640,CROP_H=360;
+let cropDragging=null,cropStartX=0,cropStartY=0;
+let cropRect={x:0.1,y:0.05,w:0.8,h:0.9};
+
+function openCropModal(){
+  if(!S.board){setStatus('⚠️ Primero cargá un video');return;}
+  const modal=document.getElementById('cropModal');
+  const cpv=document.getElementById('cropPreview');
+  cpv.width=CROP_W;cpv.height=CROP_H;
+  document.getElementById('cropBox').style.width=CROP_W+'px';
+  document.getElementById('cropBox').style.height=CROP_H+'px';
+  modal.classList.add('on');
+  updateCropSelection();
+  drawCropFrame();
+}
+function drawCropFrame(){
+  if(!S.board)return;
+  const cpv=document.getElementById('cropPreview');
+  const tc=cpv.getContext('2d');
+  tc.drawImage(S.board,0,0,CROP_W,CROP_H);
+  if(document.getElementById('cropModal').classList.contains('on'))
+    requestAnimationFrame(drawCropFrame);
+}
+function updateCropSelection(){
+  const s=document.getElementById('cropSel');
+  s.style.left=Math.round(cropRect.x*CROP_W)+'px';
+  s.style.top=Math.round(cropRect.y*CROP_H)+'px';
+  s.style.width=Math.round(cropRect.w*CROP_W)+'px';
+  s.style.height=Math.round(cropRect.h*CROP_H)+'px';
+}
+function confirmCrop(){
+  S.cropX=cropRect.x;S.cropY=cropRect.y;S.cropW=cropRect.w;S.cropH=cropRect.h;
+  closeCropModal();setStatus('✔ Zona de pop-out definida');if(!S.playing)redraw();
+}
+function resetCrop(){
+  cropRect={x:0,y:0,w:1,h:1};S.cropX=0;S.cropY=0;S.cropW=1;S.cropH=1;
+  updateCropSelection();setStatus('✔ Usando video completo');
+}
+function closeCropModal(){document.getElementById('cropModal').classList.remove('on');}
+window.openCropModal=openCropModal;window.confirmCrop=confirmCrop;window.resetCrop=resetCrop;window.closeCropModal=closeCropModal;
+
+const cropSel=document.getElementById('cropSel');
+cropSel.addEventListener('mousedown',e=>{
+  cropDragging=e.target.dataset.h?'handle_'+e.target.dataset.h:'move';
+  cropStartX=e.clientX;cropStartY=e.clientY;e.preventDefault();e.stopPropagation();
+});
+document.addEventListener('mousemove',e=>{
+  if(!cropDragging)return;
+  const dx=(e.clientX-cropStartX)/CROP_W,dy=(e.clientY-cropStartY)/CROP_H;
+  cropStartX=e.clientX;cropStartY=e.clientY;
+  if(cropDragging==='move'){cropRect.x=Math.max(0,Math.min(1-cropRect.w,cropRect.x+dx));cropRect.y=Math.max(0,Math.min(1-cropRect.h,cropRect.y+dy));}
+  else if(cropDragging==='handle_br'){cropRect.w=Math.max(0.1,Math.min(1-cropRect.x,cropRect.w+dx));cropRect.h=Math.max(0.1,Math.min(1-cropRect.y,cropRect.h+dy));}
+  else if(cropDragging==='handle_tl'){const nw=Math.max(0.1,cropRect.w-dx),nh=Math.max(0.1,cropRect.h-dy);cropRect.x+=cropRect.w-nw;cropRect.y+=cropRect.h-nh;cropRect.w=nw;cropRect.h=nh;}
+  else if(cropDragging==='handle_tr'){cropRect.w=Math.max(0.1,Math.min(1-cropRect.x,cropRect.w+dx));const nh=Math.max(0.1,cropRect.h-dy);cropRect.y+=cropRect.h-nh;cropRect.h=nh;}
+  else if(cropDragging==='handle_bl'){const nw=Math.max(0.1,cropRect.w-dx);cropRect.x+=cropRect.w-nw;cropRect.w=nw;cropRect.h=Math.max(0.1,Math.min(1-cropRect.y,cropRect.h+dy));}
+  updateCropSelection();
+});
+document.addEventListener('mouseup',()=>{cropDragging=null;});
+
 // ── LICENCIA ──
 const VURL='https://TU_WORKER.workers.dev/validate';
 const KT='bb_trial',KL='bb_lic',KE='bb_exp';
@@ -485,7 +562,8 @@ const S={
   vol:1,audioBuffer:null,micStream:null,micOn:false,
   bold1:false,ital1:false,under1:false,bold2:false,ital2:false,under2:false,
   playing:false,recording:false,rafId:null,t0:0,
-  breakoutCycle:4.5,breakoutHeight:0.38
+  breakoutCycle:4.5,breakoutHeight:0.38,
+  cropX:0,cropY:0,cropW:1,cropH:1 // normalized 0-1, default = video completo
 };
 
 // ── BG GALLERY ──
@@ -541,6 +619,8 @@ function _loadVid(key,url){
       vid2.src=url;
       vid2.addEventListener('loadeddata',()=>{S.prod=vid2;vid2.play().catch(()=>{});});
       vid2.load();
+      // Mostrar botón de recorte
+      document.getElementById('btnCropTool').style.display='block';
     }
     if(!S.playing)redraw();
   });
@@ -836,13 +916,17 @@ function render(ms){
       const iw=S.board.videoWidth||S.board.naturalWidth||S.board.width||1;
       const ih=S.board.videoHeight||S.board.naturalHeight||S.board.height||1;
 
+      // Usar zona de recorte seleccionada por el usuario (normalizada 0-1)
+      const srcX=iw*S.cropX, srcY=ih*S.cropY;
+      const srcW=iw*S.cropW, srcH=ih*S.cropH;
+
       // Crear canvas temporal para el efecto
       const tmp=document.createElement('canvas');
       tmp.width=Math.round(outW);tmp.height=Math.round(outH);
       const tc=tmp.getContext('2d');
 
       // Dibujar video en canvas temporal
-      tc.drawImage(S.board,0,0,iw,ih,0,0,outW,outH);
+      tc.drawImage(S.board,srcX,srcY,srcW,srcH,0,0,outW,outH);
 
       // Aplicar máscara oval difuminada con destination-in
       const feather=Math.round(outW*0.18); // grosor del difuminado
@@ -1087,6 +1171,28 @@ function stopRec(){if(mr&&mr.state!=='inactive')mr.stop();}
 function endRec(){S.recording=false;S.playing=false;cancelAnimationFrame(S.rafId);const btn=document.getElementById('btnRec');btn.textContent='⏺ GRABAR VIDEO';btn.classList.remove('rec');PARTS.length=0;document.getElementById('recInfo').classList.remove('on');redraw();}
 function setStatus(m){document.getElementById('status').textContent=m;}
 redraw();
+</script>
+<!-- CROP MODAL -->
+<div id="cropModal">
+  <div class="crop-title">AD3D <span>· Recorte</span></div>
+  <p class="crop-hint">Arrastrá el recuadro para elegir la zona que sale en el efecto 3D</p>
+  <div class="crop-box" id="cropBox">
+    <canvas id="cropPreview"></canvas>
+    <div class="crop-selection" id="cropSel">
+      <div class="crop-handle tl" data-h="tl"></div>
+      <div class="crop-handle tr" data-h="tr"></div>
+      <div class="crop-handle bl" data-h="bl"></div>
+      <div class="crop-handle br" data-h="br"></div>
+    </div>
+  </div>
+  <div class="crop-actions">
+    <button class="btn btn-g" onclick="confirmCrop()">✔ Confirmar recorte</button>
+    <button class="btn btn-ghost" onclick="resetCrop()">↺ Usar video completo</button>
+    <button class="btn btn-ghost" onclick="closeCropModal()">✕ Cancelar</button>
+  </div>
+</div>
+
+<script>
 </script>
 </body>
 </html>
