@@ -352,6 +352,11 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
     <div class="f"><label>Velocidad <em id="vSpd">1.0×</em></label><input type="range" id="sSpd" min="20" max="300" value="100"></div>
     <div class="f"><label>Profundidad <em id="vDep">90</em></label><input type="range" id="sDep" min="0" max="250" value="90"></div>
     <div class="f"><label>Tamaño <em id="vSc">1.00</em></label><input type="range" id="sSc" min="0.3" max="3.0" step="0.05" value="1.0"></div>
+    <div class="f" style="margin-top:6px;border-top:1px solid var(--bd);padding-top:8px">
+      <label style="color:var(--g)">✦ Breakout — rompe el marco</label>
+    </div>
+    <div class="f"><label>Velocidad breakout <em id="vBK">4.5s</em></label><input type="range" id="sBK" min="2" max="10" step="0.5" value="4.5"></div>
+    <div class="f"><label>Altura salida <em id="vBH">38%</em></label><input type="range" id="sBH" min="10" max="70" value="38"></div>
   </div>
 
   <!-- POSICIÓN CARTEL -->
@@ -479,7 +484,8 @@ const S={
   lp:'br',ls:120,
   vol:1,audioBuffer:null,micStream:null,micOn:false,
   bold1:false,ital1:false,under1:false,bold2:false,ital2:false,under2:false,
-  playing:false,recording:false,rafId:null,t0:0
+  playing:false,recording:false,rafId:null,t0:0,
+  breakoutCycle:4.5,breakoutHeight:0.38
 };
 
 // ── BG GALLERY ──
@@ -623,6 +629,10 @@ sl('sDep','vDep','dep','');sl('sSc','vSc','sc','',2);
 sl('sTY','vTY','tiltY','°');sl('sDur','vDur','dur','s');
 sl('sLS','vLS','ls','');sl('sBX','vBX','bx','%');sl('sBY','vBY','by','%');
 sl('sVol','vVol','vol','%',0,0.01);
+
+// Breakout sliders
+document.getElementById('sBK').addEventListener('input',e=>{S.breakoutCycle=parseFloat(e.target.value);document.getElementById('vBK').textContent=e.target.value+'s';});
+document.getElementById('sBH').addEventListener('input',e=>{S.breakoutHeight=parseFloat(e.target.value)/100;document.getElementById('vBH').textContent=e.target.value+'%';});
 
 // Text inputs
 ['t1','t2','tSlogan','tZoom'].forEach(id=>{
@@ -776,36 +786,74 @@ function render(ms){
     ctx.save();clipQ(q);
     if(S.board){drawQImg(S.board,q);}else{drawBoard(q,cx,cy);}
     ctx.restore();
-    if(S.prod){
-      const dep2=S.dep+d.dz,sc2=S.sc*d.ds*(FOV/(FOV+dep2));
-      ctx.save();clipQ(q);
-      const sg=ctx.createRadialGradient(cx,cy+bH*.08,8,cx,cy+bH*.08,bH*.48*sc2);
-      sg.addColorStop(0,'rgba(0,0,0,.6)');sg.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=sg;ctx.beginPath();ctx.ellipse(cx,cy+bH*.08,bW*.38*sc2,bH*.21*sc2,0,0,Math.PI*2);ctx.fill();
-      ctx.restore();
-    }
+  // Product / breakout effect
+  if(S.prod){
+    const dep2=S.dep+d.dz,sc2=S.sc*d.ds*(FOV/(FOV+dep2));
+    ctx.save();clipQ(q);
+    const sg=ctx.createRadialGradient(cx,cy+bH*.08,8,cx,cy+bH*.08,bH*.48*sc2);
+    sg.addColorStop(0,'rgba(0,0,0,.6)');sg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=sg;ctx.beginPath();ctx.ellipse(cx,cy+bH*.08,bW*.38*sc2,bH*.21*sc2,0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
   }
 
   drawFrame(q,cx,cy,bW,bH);
 
   // Particles
-  if(S.anim==='burst'&&d.bv>0.4&&d.bc<0.55&&S.prod)spawnP(cx,topY,3);
+  if(S.anim==='burst'&&d.bv>0.4&&d.bc<0.55&&S.board)spawnP(cx,topY,3);
   updateP();drawP();
 
-  // Product
-  if(S.prod){
-    const dep2=S.dep+d.dz,sc2=S.sc*d.ds*(FOV/(FOV+dep2));
-    drawProd(cx,cy+d.dy,sc2,S.tiltY*.12+d.rot,d.sw);
-  }else{drawProdHint(q,cx,cy);}
+  // ── BREAKOUT EFFECT — rompe el marco ──
+  if(S.board){
+    const cycle=S.breakoutCycle||4.5;
+    const tSec=(ms/1000)%cycle;
+    const quietEnd=cycle*0.44,outEnd=cycle*0.67,holdEnd=cycle*0.84;
+    let breakProg=0;
+    if(tSec>quietEnd&&tSec<=outEnd){const p=(tSec-quietEnd)/(outEnd-quietEnd);breakProg=1-Math.pow(1-p,3);}
+    else if(tSec>outEnd&&tSec<=holdEnd){breakProg=1;}
+    else if(tSec>holdEnd){const p=(tSec-holdEnd)/(cycle-holdEnd);breakProg=1-p;}
 
-  // Ambient glow
-  if(S.prod&&curFrame!=='noframe'){
-    const dep2=S.dep,sc2=S.sc*(FOV/(FOV+dep2));
-    ctx.save();ctx.globalCompositeOperation='screen';
-    const gg=ctx.createRadialGradient(cx,cy-H*.1,0,cx,cy-H*.1,H*.25*sc2);
-    gg.addColorStop(0,'rgba(255,220,100,0.05)');gg.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=gg;ctx.fillRect(0,0,W,H);ctx.restore();
-  }
+    if(breakProg>0.01){
+      const cropW=bW*0.72,cropH=bH*0.85;
+      const maxExtra=bH*(S.breakoutHeight||0.38);
+      const scaleOut=1+breakProg*0.55;
+      const tzOut=breakProg*120;
+      const yLift=-breakProg*maxExtra;
+
+      const outW=cropW*scaleOut*(FOV/(FOV+tzOut*(1-breakProg*0.3)));
+      const outH=cropH*scaleOut*(FOV/(FOV+tzOut*(1-breakProg*0.3)));
+
+      if(breakProg>0.1){
+        ctx.save();
+        ctx.globalAlpha=breakProg*0.55;
+        const shX=cx+breakProg*18,shY=cy+yLift+outH*0.38;
+        const sg=ctx.createRadialGradient(shX,shY+20,0,shX,shY+20,outW*0.6);
+        sg.addColorStop(0,'rgba(0,0,0,.7)');sg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=sg;ctx.beginPath();ctx.ellipse(shX,shY+30,outW*0.55,outH*0.18,0,0,Math.PI*2);ctx.fill();
+        ctx.restore();
+      }
+
+      const iw=S.board.videoWidth||S.board.naturalWidth||S.board.width||1;
+      const ih=S.board.videoHeight||S.board.naturalHeight||S.board.height||1;
+      const srcX=iw*0.14,srcY=ih*0.08,srcW=iw*0.72,srcH=ih*0.85;
+      const dstX=cx-outW/2,dstY=cy+yLift-outH/2;
+
+      ctx.save();
+      if(breakProg>0.3){ctx.shadowColor='rgba(255,106,0,'+(breakProg*0.7)+')';ctx.shadowBlur=30*breakProg;}
+      ctx.drawImage(S.board,srcX,srcY,srcW,srcH,dstX,dstY,outW,outH);
+      ctx.shadowBlur=0;
+
+      if(breakProg>0.85){
+        const fl=ctx.createRadialGradient(cx,cy+yLift,0,cx,cy+yLift,outW*0.4);
+        fl.addColorStop(0,'rgba(255,200,100,'+(breakProg-0.85)*3+')');
+        fl.addColorStop(1,'rgba(255,106,0,0)');
+        ctx.globalCompositeOperation='screen';
+        ctx.fillStyle=fl;ctx.fillRect(cx-outW,cy+yLift-outH,outW*2,outH*2);
+        ctx.globalCompositeOperation='source-over';
+      }
+      ctx.restore();
+    }
+  } else { drawProdHint(q,cx,cy); }
 
   drawLogo();drawText(ms);drawZoomText(ms);drawSloganBar();applyGrade();
 
