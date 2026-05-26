@@ -804,7 +804,7 @@ function render(ms){
   updateP();drawP();
 
   // ── BREAKOUT EFFECT — rompe el marco ──
-  // ── BREAKOUT EFFECT — el billboard completo sale hacia el espectador ──
+  // ── BREAKOUT EFFECT — oval con bordes difuminados ──
   if(S.board){
     const cycle=S.breakoutCycle||4.5;
     const tSec=(ms/1000)%cycle;
@@ -816,91 +816,78 @@ function render(ms){
 
     if(breakProg>0.01){
       const maxHeight=S.breakoutHeight||0.38;
-      // Simulamos que el billboard se acerca al espectador
-      // usando perspectiva: el video se escala y sube
-      const zDist=breakProg*180; // profundidad simulada
-      const scaleFactor=FOV/(FOV-zDist*0.6);
+      const scaleOut=1+breakProg*0.45;
       const yLift=-breakProg*bH*maxHeight;
+      const outW=bW*scaleOut;
+      const outH=bH*scaleOut;
+      const ox=cx, oy=cy+yLift;
 
-      const outW=bW*scaleFactor;
-      const outH=bH*scaleFactor;
-      const dstX=cx-outW/2;
-      const dstY=cy+yLift-outH/2;
-
-      // Sombra proyectada debajo del billboard
+      // Sombra debajo
       ctx.save();
-      ctx.globalAlpha=breakProg*0.5;
-      const sg=ctx.createRadialGradient(cx+breakProg*20,cy+bH*0.52,0,cx+breakProg*20,cy+bH*0.52,outW*0.55);
-      sg.addColorStop(0,'rgba(0,0,0,.8)');sg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.globalAlpha=breakProg*0.45;
+      const sg=ctx.createRadialGradient(cx,cy+bH*0.5+breakProg*25,0,cx,cy+bH*0.5+breakProg*25,outW*0.5);
+      sg.addColorStop(0,'rgba(0,0,0,.75)');sg.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=sg;
-      ctx.beginPath();ctx.ellipse(cx+breakProg*20,cy+bH*0.52+breakProg*30,outW*0.48,outH*0.1,0,0,Math.PI*2);
+      ctx.beginPath();ctx.ellipse(cx,cy+bH*0.5+breakProg*25,outW*0.45,outH*0.09,0,0,Math.PI*2);
       ctx.fill();
       ctx.restore();
 
-      // El video completo con perspectiva — esquinas con efecto trapezoide 3D
-      ctx.save();
-
-      // Glow naranja en los bordes al salir
-      if(breakProg>0.25){
-        ctx.shadowColor='rgba(255,106,0,'+(breakProg*0.6)+')';
-        ctx.shadowBlur=Math.round(25*breakProg);
-      }
-
-      // Dibujar usando transformación de perspectiva manual (trapezoide)
-      // La parte superior se achica un poco (efecto de alejarse en la parte de arriba)
-      const perspective=0.06*breakProg;
-      const topW=outW*(1-perspective);
-      const botW=outW*(1+perspective*0.3);
-      const topX=cx-topW/2;
-      const botX=cx-botW/2;
-
+      // Dibujamos el video en un canvas offscreen y le aplicamos máscara oval difuminada
       const iw=S.board.videoWidth||S.board.naturalWidth||S.board.width||1;
       const ih=S.board.videoHeight||S.board.naturalHeight||S.board.height||1;
 
-      // Dibujamos el video con clip path trapezoidal para el efecto 3D
-      ctx.beginPath();
-      ctx.moveTo(topX, dstY);
-      ctx.lineTo(topX+topW, dstY);
-      ctx.lineTo(botX+botW, dstY+outH);
-      ctx.lineTo(botX, dstY+outH);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(S.board, 0, 0, iw, ih, dstX, dstY, outW, outH);
-      ctx.shadowBlur=0;
-      ctx.restore();
+      // Crear canvas temporal para el efecto
+      const tmp=document.createElement('canvas');
+      tmp.width=Math.round(outW);tmp.height=Math.round(outH);
+      const tc=tmp.getContext('2d');
 
-      // Marco del billboard también sale — borde naranja
+      // Dibujar video en canvas temporal
+      tc.drawImage(S.board,0,0,iw,ih,0,0,outW,outH);
+
+      // Aplicar máscara oval difuminada con destination-in
+      const feather=Math.round(outW*0.18); // grosor del difuminado
+      const grd=tc.createRadialGradient(
+        outW/2,outH/2,Math.min(outW,outH)*0.25,  // círculo interno sólido
+        outW/2,outH/2,Math.min(outW,outH)*0.58   // círculo externo transparente
+      );
+      grd.addColorStop(0,'rgba(0,0,0,1)');
+      grd.addColorStop(0.7,'rgba(0,0,0,1)');
+      grd.addColorStop(1,'rgba(0,0,0,0)');
+
+      // Oval con escala X/Y diferente para que no sea círculo perfecto
+      tc.save();
+      tc.globalCompositeOperation='destination-in';
+      tc.scale(1, outH/outW); // estirar verticalmente
+      tc.beginPath();
+      tc.arc(outW/2, outW/2, outW/2*0.92, 0, Math.PI*2);
+      tc.fillStyle=grd;
+      tc.fill();
+      tc.restore();
+
+      // Pegar en canvas principal
       ctx.save();
-      ctx.globalAlpha=Math.min(breakProg*1.2,1);
-      ctx.beginPath();
-      ctx.moveTo(topX, dstY);
-      ctx.lineTo(topX+topW, dstY);
-      ctx.lineTo(botX+botW, dstY+outH);
-      ctx.lineTo(botX, dstY+outH);
-      ctx.closePath();
-      ctx.strokeStyle=S.fc||'#ff6a00';
-      ctx.lineWidth=4*scaleFactor;
-      ctx.shadowColor=S.fc||'#ff6a00';
-      ctx.shadowBlur=Math.round(18*breakProg);
-      ctx.stroke();
+      if(breakProg>0.25){
+        ctx.shadowColor='rgba(255,106,0,'+(breakProg*0.65)+')';
+        ctx.shadowBlur=Math.round(28*breakProg);
+      }
+      ctx.globalAlpha=Math.min(breakProg*1.8,1);
+      ctx.drawImage(tmp,ox-outW/2,oy-outH/2);
       ctx.shadowBlur=0;
-      ctx.restore();
 
-      // Destello de luz en el pico máximo
+      // Destello en el pico
       if(breakProg>0.82){
         const fl=breakProg-0.82;
-        ctx.save();
-        ctx.globalAlpha=fl*2.5;
         ctx.globalCompositeOperation='screen';
-        const flg=ctx.createRadialGradient(cx,cy+yLift,0,cx,cy+yLift,outW*0.5);
-        flg.addColorStop(0,'rgba(255,180,80,0.4)');
-        flg.addColorStop(0.4,'rgba(255,106,0,0.15)');
+        ctx.globalAlpha=fl*2.2;
+        const flg=ctx.createRadialGradient(ox,oy,0,ox,oy,outW*0.45);
+        flg.addColorStop(0,'rgba(255,180,80,0.45)');
+        flg.addColorStop(0.5,'rgba(255,106,0,0.2)');
         flg.addColorStop(1,'rgba(0,0,0,0)');
         ctx.fillStyle=flg;
-        ctx.fillRect(cx-outW,cy+yLift-outH,outW*2,outH*2);
+        ctx.fillRect(ox-outW,oy-outH,outW*2,outH*2);
         ctx.globalCompositeOperation='source-over';
-        ctx.restore();
       }
+      ctx.restore();
     }
   } else { drawProdHint(q,cx,cy); }
 
