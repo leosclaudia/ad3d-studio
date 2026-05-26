@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Billboard Pro</title>
+<title>AD3D · Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,700;1,700&family=Montserrat:wght@400;700&family=Raleway:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--g:#00e676;--g2:#00c85e;--y:#ffd600;--r:#f44336;--bg:#060608;--s1:#0e0e12;--s2:#16161c;--bd:#2a2a35;--tx:#e8e8f0;--dim:#5a5a72}
+:root{--g:#ff6a00;--g2:#e55a00;--y:#ffb347;--r:#ff3d3d;--bg:#07080f;--s1:#0c0d18;--s2:#13152a;--bd:#252840;--tx:#eeeef8;--dim:#5a5c80}
 body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
 
 /* TOP BAR */
@@ -84,7 +84,7 @@ select{background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding
 
 /* CANVAS */
 .canvas-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;gap:10px;overflow:hidden;background:#040406}
-.preview-wrap{border-radius:12px;overflow:hidden;border:1.5px solid var(--g);box-shadow:0 0 0 1px #003d20,0 0 30px rgba(0,230,118,.1),0 20px 60px rgba(0,0,0,.9);background:#000;max-width:100%;max-height:calc(100vh - 180px);aspect-ratio:16/9;transition:aspect-ratio .3s}
+.preview-wrap{border-radius:12px;overflow:hidden;border:1.5px solid var(--g);box-shadow:0 0 0 1px #3d1800,0 0 30px rgba(255,106,0,.12),0 20px 60px rgba(0,0,0,.9);background:#000;max-width:100%;max-height:calc(100vh - 180px);aspect-ratio:16/9;transition:aspect-ratio .3s}
 #cnv{width:100%;height:100%;display:block}
 
 /* BOTTOM */
@@ -133,7 +133,7 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
 <!-- GATE -->
 <div id="gate">
   <div class="gate-box">
-    <div class="gate-logo">3D Billboard <span>Pro</span></div>
+    <div class="gate-logo">AD3D <span>· Studio</span></div>
     <h2 class="gate-title">Tu prueba gratuita finalizó</h2>
     <p class="gate-sub">Ingresá tu clave de licencia para continuar.</p>
     <input class="gate-inp" id="keyInp" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="36" autocomplete="off">
@@ -147,7 +147,7 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="logo">3D Billboard <span>Pro</span></div>
+  <div class="logo">AD3D <span>· Studio</span></div>
   <div class="topbar-btns">
     <button class="btn btn-panel" onclick="togglePanel()">☰ Panel</button>
     <button class="btn btn-ghost" id="btnPng">📸 PNG</button>
@@ -166,26 +166,23 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
 
 <div class="sidebar" id="sidebar">
 
-  <!-- IMÁGENES -->
+  <!-- VIDEO -->
   <div class="sb">
-    <div class="sb-title">① Videos</div>
+    <div class="sb-title">① Tu video publicitario</div>
     <div class="f">
-      <label>Video fondo de escena</label>
-      <button class="fbtn" id="lbBg" onclick="document.getElementById('iBg').click()">Elegir video…</button>
-      <input type="file" id="iBg" accept="video/*">
-      <input type="text" id="urlBg" placeholder="…o pegá URL de video" style="margin-top:4px;font-size:11px" oninput="loadVideoUrl('bg','lbBg',this.value)">
-    </div>
-    <div class="f">
-      <label>Video del cartel <small style="color:var(--dim);font-weight:400">(dentro del marco)</small></label>
+      <label>Video principal</label>
       <button class="fbtn" id="lbBoard" onclick="document.getElementById('iBoard').click()">Elegir video…</button>
       <input type="file" id="iBoard" accept="video/*">
       <input type="text" id="urlBoard" placeholder="…o pegá URL de video" style="margin-top:4px;font-size:11px" oninput="loadVideoUrl('board','lbBoard',this.value)">
     </div>
+    <div class="f" style="margin-top:2px">
+      <label style="color:var(--g);font-size:9px">✦ El pop-out 3D se genera solo</label>
+    </div>
     <div class="f">
-      <label>Video producto <small style="color:var(--dim);font-weight:400">(pop-out 3D ✦)</small></label>
-      <button class="fbtn" id="lbProd" onclick="document.getElementById('iProd').click()">Elegir video…</button>
-      <input type="file" id="iProd" accept="video/*">
-      <input type="text" id="urlProd" placeholder="…o pegá URL de video" style="margin-top:4px;font-size:11px" oninput="loadVideoUrl('prod','lbProd',this.value)">
+      <label>Fondo de escena <small style="color:var(--dim);font-weight:400">(opcional)</small></label>
+      <button class="fbtn" id="lbBg" onclick="document.getElementById('iBg').click()">Elegir imagen o video…</button>
+      <input type="file" id="iBg" accept="video/*,image/*">
+      <input type="text" id="urlBg" placeholder="…o pegá URL" style="margin-top:4px;font-size:11px" oninput="loadVideoUrl('bg','lbBg',this.value)">
     </div>
   </div>
 
@@ -246,7 +243,7 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
     <div class="f" style="margin-top:8px">
       <label>Color del marco</label>
       <div style="display:flex;gap:7px;align-items:center;margin-top:3px">
-        <input type="color" id="iFC" value="#00e676" style="width:48px;height:36px;cursor:pointer">
+        <input type="color" id="iFC" value="#ff6a00" style="width:48px;height:36px;cursor:pointer">
         <span style="font-size:10px;color:var(--dim)">← Clic para elegir cualquier color</span>
       </div>
     </div>
@@ -400,7 +397,7 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
     <button class="btn btn-rec" id="btnRec">⏺ GRABAR VIDEO</button>
     <div class="rec-info" id="recInfo"><div class="rdot"></div><span id="recLbl">Grabando…</span></div>
   </div>
-  <div class="status" id="status">Elegí las imágenes del panel · Clic en "Panel" para ocultar/mostrar controles</div>
+  <div class="status" id="status">Cargá tu video publicitario en ① · La app genera el pop-out 3D automáticamente ✦</div>
 </div>
 
 </div><!-- /main -->
@@ -476,7 +473,7 @@ const S={
   tPos:'bottom',tAnim:'none',
   slogan:'',cSlogan:'#ffffff',bgSlogan:'#000000',showSlogan:'yes',
   zoomT:'',cZoom:'#ffd600',animZoom:'none',
-  frame:'green',fc:'#00e676',
+  frame:'green',fc:'#ff6a00',
   bx:50,by:46,
   format:'16:9',grade:'none',bloom:'medium',
   lp:'br',ls:120,
@@ -517,40 +514,60 @@ window.setFC=setFC;
 document.getElementById('iFC').addEventListener('input',e=>setFC(e.target.value));
 
 // ── FILE BINDINGS ──
-// Load a video element into a state key (bg/board/prod)
 function loadVideoIntoState(file,btnId,key,label){
   const url=URL.createObjectURL(file);
-  loadVideoUrl(key,btnId,url,label||file.name,true);
+  _loadVid(key,url);
   document.getElementById(btnId).textContent='✔ '+file.name;
   document.getElementById(btnId).classList.add('ok');
+  setStatus('✔ '+label+': '+file.name);
 }
-// Load video from URL or blob URL into state
-function loadVideoUrl(key,btnId,url,label,isBlobOrTrusted){
-  if(!url||url.trim().length<4)return;
+function _loadVid(key,url){
   const vid=document.createElement('video');
-  vid.crossOrigin='anonymous';
-  vid.loop=true;vid.muted=true;vid.playsInline=true;vid.autoplay=true;
-  vid.src=url.trim();
+  vid.crossOrigin='anonymous';vid.loop=true;vid.muted=true;vid.playsInline=true;vid.autoplay=true;
+  vid.src=url;
   vid.addEventListener('loadeddata',()=>{
-    S[key]=vid;vid.play().catch(()=>{});
+    S[key]=vid;
+    vid.play().catch(()=>{});
+    // Si es el video principal (board), crear automáticamente el pop-out
+    if(key==='board'){
+      const vid2=document.createElement('video');
+      vid2.crossOrigin='anonymous';vid2.loop=true;vid2.muted=true;vid2.playsInline=true;vid2.autoplay=true;
+      vid2.src=url;
+      vid2.addEventListener('loadeddata',()=>{S.prod=vid2;vid2.play().catch(()=>{});});
+      vid2.load();
+    }
     if(!S.playing)redraw();
-    const lbl=label||url.split('/').pop().split('?')[0]||url.substring(0,28);
-    setStatus('✔ '+(key==='bg'?'Fondo':key==='board'?'Cartel':'Producto')+': '+lbl);
-    if(btnId&&!isBlobOrTrusted){const b=document.getElementById(btnId);if(b){b.textContent='✔ URL cargada';b.classList.add('ok');}}
   });
-  vid.addEventListener('error',()=>setStatus('⚠️ No se pudo cargar el video. Usá un .mp4 directo o un archivo local.'));
+  vid.load();
+}
+function loadVideoUrl(key,btnId,url,label,trusted){
+  if(!url||url.trim().length<4)return;
+  _loadVid(key,url.trim());
+  if(btnId&&!trusted){
+    const b=document.getElementById(btnId);
+    if(b){b.textContent='✔ URL cargada';b.classList.add('ok');}
+  }
 }
 window.loadVideoUrl=loadVideoUrl;
 
-// Video file inputs for the 3 main slots
-['iBg','iBoard','iProd'].forEach(inputId=>{
-  const keyMap={iBg:'bg',iBoard:'board',iProd:'prod'};
-  const btnMap={iBg:'lbBg',iBoard:'lbBoard',iProd:'lbProd'};
-  const lblMap={iBg:'Fondo',iBoard:'Cartel',iProd:'Producto'};
-  document.getElementById(inputId).addEventListener('change',e=>{
-    const f=e.target.files[0];if(!f)return;
-    loadVideoIntoState(f,btnMap[inputId],keyMap[inputId],lblMap[inputId]);
-  });
+// Video principal
+document.getElementById('iBoard').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  loadVideoIntoState(f,'lbBoard','board','Video');
+});
+
+// Fondo — acepta imagen o video
+document.getElementById('iBg').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  if(f.type.startsWith('video/')){
+    loadVideoIntoState(f,'lbBg','bg','Fondo');
+  } else {
+    const r=new FileReader();
+    r.onload=ev=>{const img=new Image();img.onload=()=>{S.bg=img;if(!S.playing)redraw();setStatus('✔ Fondo: '+f.name);};img.src=ev.target.result;};
+    r.readAsDataURL(f);
+    document.getElementById('lbBg').textContent='✔ '+f.name;
+    document.getElementById('lbBg').classList.add('ok');
+  }
 });
 
 // Logo stays as image
@@ -566,7 +583,7 @@ function bindFile(inputId,btnId,key,label){
 }
 bindFile('iLogo','lbLogo','logo','Logo');
 
-// Custom background: supports both image and video
+// Custom background gallery upload
 document.getElementById('iBgC').addEventListener('change',e=>{
   const f=e.target.files[0];if(!f)return;
   if(f.type.startsWith('video/')){
@@ -800,13 +817,13 @@ function render(ms){
 
 function drawBg(){
   const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#06061a');g.addColorStop(.5,'#0d0d28');g.addColorStop(1,'#080814');
+  g.addColorStop(0,'#07080f');g.addColorStop(.5,'#0c0d1a');g.addColorStop(1,'#080810');
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(100,100,255,.05)';ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(255,106,0,.04)';ctx.lineWidth=1;
   for(let x=0;x<W;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=0;y<H;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   const cg=ctx.createRadialGradient(W/2,H/2,80,W/2,H/2,700);
-  cg.addColorStop(0,'rgba(20,80,255,.07)');cg.addColorStop(1,'rgba(0,0,0,0)');
+  cg.addColorStop(0,'rgba(255,106,0,.05)');cg.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=cg;ctx.fillRect(0,0,W,H);
 }
 function drawBoard(q,cx,cy){
@@ -834,9 +851,9 @@ function drawProd(cx,cy,sc,rotYdeg,sw){
 }
 function drawProdHint(q,cx,cy){
   const oy=cy-H*.11;
-  ctx.save();ctx.strokeStyle='rgba(0,230,118,.28)';ctx.lineWidth=3;ctx.setLineDash([10,8]);
+  ctx.save();ctx.strokeStyle='rgba(255,106,0,.28)';ctx.lineWidth=3;ctx.setLineDash([10,8]);
   ctx.strokeRect(cx-H*.12,oy-H*.16,H*.24,H*.32);ctx.setLineDash([]);
-  ctx.fillStyle='rgba(0,230,118,.4)';ctx.font=`${H*.015}px 'DM Sans',sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(255,106,0,.5)';ctx.font=`${H*.015}px 'DM Sans',sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('Subí el video producto (pop-out)',cx,oy+H*.18);ctx.restore();
 }
 function drawLogo(){
