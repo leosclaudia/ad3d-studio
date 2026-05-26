@@ -467,10 +467,12 @@ function resetCrop(){
 function closeCropModal(){document.getElementById('cropModal').classList.remove('on');}
 window.openCropModal=openCropModal;window.confirmCrop=confirmCrop;window.resetCrop=resetCrop;window.closeCropModal=closeCropModal;
 
+window.addEventListener('DOMContentLoaded',()=>{
 const cropSel=document.getElementById('cropSel');
 cropSel.addEventListener('mousedown',e=>{
   cropDragging=e.target.dataset.h?'handle_'+e.target.dataset.h:'move';
   cropStartX=e.clientX;cropStartY=e.clientY;e.preventDefault();e.stopPropagation();
+});
 });
 document.addEventListener('mousemove',e=>{
   if(!cropDragging)return;
