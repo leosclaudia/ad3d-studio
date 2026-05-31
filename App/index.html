@@ -264,6 +264,9 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
         <button class="style-btn" id="b1Bold" onclick="toggleStyle('bold1')" title="Negrita"><b>N</b></button>
         <button class="style-btn" id="b1Ital" onclick="toggleStyle('ital1')" title="Cursiva"><i>C</i></button>
         <button class="style-btn" id="b1Under" onclick="toggleStyle('under1')" title="Subrayado"><u>S</u></button>
+        <button class="style-btn" id="b1AlL" onclick="setAlign(1,'left')" title="Izquierda">≡</button>
+        <button class="style-btn on" id="b1AlC" onclick="setAlign(1,'center')" title="Centro">≡</button>
+        <button class="style-btn" id="b1AlR" onclick="setAlign(1,'right')" title="Derecha">≡</button>
       </div>
     </div>
     <div class="f">
@@ -290,6 +293,9 @@ input[type=color]::-webkit-color-swatch{border-radius:3px;border:none}
         <button class="style-btn" id="b2Bold" onclick="toggleStyle('bold2')" title="Negrita"><b>N</b></button>
         <button class="style-btn" id="b2Ital" onclick="toggleStyle('ital2')" title="Cursiva"><i>C</i></button>
         <button class="style-btn" id="b2Under" onclick="toggleStyle('under2')" title="Subrayado"><u>S</u></button>
+        <button class="style-btn" id="b2AlL" onclick="setAlign(2,'left')" title="Izquierda">≡</button>
+        <button class="style-btn on" id="b2AlC" onclick="setAlign(2,'center')" title="Centro">≡</button>
+        <button class="style-btn" id="b2AlR" onclick="setAlign(2,'right')" title="Derecha">≡</button>
       </div>
     </div>
     <div class="r2">
@@ -442,6 +448,17 @@ function toggleStyle(key){
 }
 window.toggleStyle=toggleStyle;
 
+function setAlign(num,align){
+  S['align'+num]=align;
+  const ids={left:'L',center:'C',right:'R'};
+  Object.keys(ids).forEach(a=>{
+    const btn=document.getElementById('b'+num+'Al'+ids[a]);
+    if(btn)btn.classList.toggle('on',a===align);
+  });
+  if(!S.playing)redraw();
+}
+window.setAlign=setAlign;
+
 // ── PANEL ──
 let panelOpen=true;
 function togglePanel(){panelOpen=!panelOpen;document.getElementById('sidebar').classList.toggle('closed',!panelOpen);}
@@ -466,7 +483,7 @@ const S={
   format:'16:9',grade:'none',bloom:'medium',
   lp:'br',ls:120,
   vol:1,audioBuffer:null,audioArrayBuffer:null,micStream:null,micOn:false,
-  bold1:false,ital1:false,under1:false,bold2:false,ital2:false,under2:false,
+  bold1:false,ital1:false,under1:false,align1:'center',bold2:false,ital2:false,under2:false,align2:'center',
   playing:false,recording:false,rafId:null,t0:0
 };
 
@@ -788,7 +805,7 @@ function drawTextLines(lines,cx,startY,sz,font,color,gl,lh,under){
     ctx.shadowColor=color;ctx.shadowBlur=gl;
     ctx.strokeStyle='rgba(0,0,0,.88)';ctx.lineWidth=sz/7;ctx.lineJoin='round';
     ctx.strokeText(line,cx,y);ctx.fillStyle=color;ctx.fillText(line,cx,y);
-    if(under){const m=ctx.measureText(line);ctx.fillRect(cx-m.width/2,y+sz*.55,m.width,sz*.06);}
+    if(under){const m=ctx.measureText(line);const ux=ctx.textAlign==='right'?cx-m.width:ctx.textAlign==='left'?cx:cx-m.width/2;ctx.fillRect(ux,y+sz*.55,m.width,sz*.06);}
   });
 }
 function drawText(ms){
@@ -796,19 +813,26 @@ function drawText(ms){
   if(!raw1&&!raw2)return;
   const lines1=raw1?raw1.split('\n').map(l=>l.trim()).filter(l=>l):[];
   const lines2=raw2?raw2.split('\n').map(l=>l.trim()).filter(l=>l):[];
-  const cx=W/2,t=ms/1000;
+  const t=ms/1000;
   const by2=S.tPos==='top'?H*.09:S.tPos==='center'?H*.50:H*.87;
   let al=1,oy=0,gl=0;
   if(S.tAnim==='fade')al=Math.min(t*1.2,1);
   if(S.tAnim==='slide'){const p=Math.min(t*1.5,1),e=1-Math.pow(1-p,3);oy=(1-e)*H*.06;al=e;}
   if(S.tAnim==='glow')gl=14+Math.sin(t*2.4)*10;
-  ctx.save();ctx.globalAlpha=al;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.save();ctx.globalAlpha=al;ctx.textBaseline='middle';
+
+  const pad=W*.05; // margen lateral
+  const getX=(align)=>align==='left'?pad:align==='right'?W-pad:W/2;
+
   if(lines1.length>0){
     const sz=S.sz1*(W/1280);
     const style=(S.ital1?'italic ':'')+(S.bold1?'bold ':'');
     const font=`${style}${sz}px ${S.font1}`;
     const lh=sz*1.2;
-    drawTextLines(lines1,cx,by2+oy,sz,font,S.c1,gl,lh,S.under1);
+    const align=S.align1||'center';
+    const cx1=getX(align);
+    ctx.textAlign=align;
+    drawTextLines(lines1,cx1,by2+oy,sz,font,S.c1,gl,lh,S.under1);
   }
   if(lines2.length>0){
     const sz=S.sz2*(W/1280);
@@ -816,7 +840,10 @@ function drawText(ms){
     const font=`${style}${sz}px ${S.font2}`;
     const lh=sz*1.2;
     const gap=lines1.length>0?S.sz1*(W/1280)*lines1.length*1.2+sz*.65:0;
-    drawTextLines(lines2,cx,by2+gap+oy,sz,font,S.c2,gl,lh,S.under2);
+    const align=S.align2||'center';
+    const cx2=getX(align);
+    ctx.textAlign=align;
+    drawTextLines(lines2,cx2,by2+gap+oy,sz,font,S.c2,gl,lh,S.under2);
   }
   ctx.restore();
 }
